@@ -1,0 +1,962 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AgroAI - Smart Crop Advisory System</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { font-family: 'Inter', sans-serif; }
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .animate-float {
+            animation: float 3s ease-in-out infinite;
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+        .typing-indicator span {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #667eea;
+            margin: 0 2px;
+            animation: typing 1.4s infinite;
+        }
+        .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+        .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes typing {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-10px); }
+        }
+        .chat-message {
+            animation: slideIn 0.3s ease-out;
+        }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        .pulse-dot {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(102, 126, 234, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(102, 126, 234, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(102, 126, 234, 0); }
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef, useCallback } = React;
+
+        // Language translations
+        const translations = {
+            en: {
+                welcome: "Welcome to AgroAI",
+                tagline: "Your Smart Farming Companion",
+                phoneNumber: "Phone Number",
+                enterPhone: "Enter your 10-digit mobile number",
+                sendOTP: "Send OTP",
+                verifyOTP: "Verify OTP",
+                enterOTP: "Enter 6-digit OTP",
+                selectLanguage: "Select Your Preferred Language",
+                continue: "Continue",
+                resendOTP: "Resend OTP",
+                dashboard: "Dashboard",
+                cropAdvisory: "Crop Advisory",
+                pestDetection: "Pest Detection",
+                weather: "Weather",
+                market: "Market Prices",
+                community: "Community",
+                profile: "Profile",
+                logout: "Logout",
+                askQuestion: "Ask your farming question...",
+                typeMessage: "Type your message or use voice...",
+                uploadImage: "Upload Crop Image",
+                detectPest: "Detect Pest/Disease",
+                todayWeather: "Today's Weather",
+                marketPrices: "Market Prices",
+                recentAlerts: "Recent Alerts",
+                yourCrops: "Your Crops",
+                farmLocation: "Farm Location",
+                soilType: "Soil Type",
+                addCrop: "Add Crop",
+                voiceInput: "Voice Input",
+                send: "Send",
+                detecting: "Detecting...",
+                processing: "Processing...",
+                wheat: "Wheat",
+                rice: "Rice",
+                cotton: "Cotton",
+                punjab: "Punjab, India",
+                loamy: "Loamy Soil",
+                temperature: "Temperature",
+                humidity: "Humidity",
+                rainfall: "Rainfall",
+                windSpeed: "Wind Speed",
+                sunny: "Sunny",
+                cloudy: "Cloudy",
+                rainy: "Rainy",
+                selectCrop: "Select Crop",
+                getAdvice: "Get Personalized Advice"
+            },
+            hi: {
+                welcome: "AgroAI में आपका स्वागत है",
+                tagline: "आपका स्मार्ट कृषि साथी",
+                phoneNumber: "फोन नंबर",
+                enterPhone: "अपना 10 अंकों का मोबाइल नंबर दर्ज करें",
+                sendOTP: "OTP भेजें",
+                verifyOTP: "OTP सत्यापित करें",
+                enterOTP: "6 अंकों का OTP दर्ज करें",
+                selectLanguage: "अपनी पसंदीदा भाषा चुनें",
+                continue: "जारी रखें",
+                resendOTP: "OTP पुनः भेजें",
+                dashboard: "डैशबोर्ड",
+                cropAdvisory: "फसल सलाह",
+                pestDetection: "कीट पहचान",
+                weather: "मौसम",
+                market: "बाजार भाव",
+                community: "समुदाय",
+                profile: "प्रोफाइल",
+                logout: "लॉगआउट",
+                askQuestion: "अपना कृषि प्रश्न पूछें...",
+                typeMessage: "अपना संदेश टाइप करें या आवाज का उपयोग करें...",
+                uploadImage: "फसल की तस्वीर अपलोड करें",
+                detectPest: "कीट/रोग की पहचान करें",
+                todayWeather: "आज का मौसम",
+                marketPrices: "बाजार भाव",
+                recentAlerts: "हाल की चेतावनियां",
+                yourCrops: "आपकी फसलें",
+                farmLocation: "खेत का स्थान",
+                soilType: "मिट्टी का प्रकार",
+                addCrop: "फसल जोड़ें",
+                voiceInput: "आवाज इनपुट",
+                send: "भेजें",
+                detecting: "पहचान हो रही है...",
+                processing: "प्रसंस्करण...",
+                wheat: "गेहूं",
+                rice: "धान",
+                cotton: "कपास",
+                punjab: "पंजाब, भारत",
+                loamy: "दोमट मिट्टी",
+                temperature: "तापमान",
+                humidity: "आर्द्रता",
+                rainfall: "वर्षा",
+                windSpeed: "हवा की गति",
+                sunny: "धूप",
+                cloudy: "बादल",
+                rainy: "बारिश",
+                selectCrop: "फसल चुनें",
+                getAdvice: "व्यक्तिगत सलाह प्राप्त करें"
+            },
+            pa: {
+                welcome: "AgroAI ਵਿੱਚ ਤੁਹਾਡਾ ਸਵਾਗਤ ਹੈ",
+                tagline: "ਤੁਹਾਡਾ ਸਮਾਰਟ ਖੇਤੀ ਸਾਥੀ",
+                phoneNumber: "ਫੋਨ ਨੰਬਰ",
+                enterPhone: "ਆਪਣਾ 10 ਅੰਕਾਂ ਦਾ ਮੋਬਾਈਲ ਨੰਬਰ ਦਾਖਲ ਕਰੋ",
+                sendOTP: "OTP ਭੇਜੋ",
+                verifyOTP: "OTP ਪੁਸ਼ਟੀ ਕਰੋ",
+                enterOTP: "6 ਅੰਕਾਂ ਦਾ OTP ਦਾਖਲ ਕਰੋ",
+                selectLanguage: "ਆਪਣੀ ਪਸੰਦੀਦਾ ਭਾਸ਼ਾ ਚੁਣੋ",
+                continue: "ਜਾਰੀ ਰੱਖੋ",
+                resendOTP: "OTP ਦੁਬਾਰਾ ਭੇਜੋ",
+                dashboard: "ਡੈਸ਼ਬੋਰਡ",
+                cropAdvisory: "ਫਸਲ ਸਲਾਹ",
+                pestDetection: "ਕੀੜੇ ਦੀ ਪਛਾਣ",
+                weather: "ਮੌਸਮ",
+                market: "ਮੰਡੀ ਭਾਅ",
+                community: "ਭਾਈਚਾਰਾ",
+                profile: "ਪ੍ਰੋਫਾਈਲ",
+                logout: "ਲੌਗਆਉਟ",
+                askQuestion: "ਆਪਣਾ ਖੇਤੀ ਸਵਾਲ ਪੁੱਛੋ...",
+                typeMessage: "ਆਪਣਾ ਸੁਨੇਹਾ ਟਾਈਪ ਕਰੋ ਜਾਂ ਆਵਾਜ਼ ਵਰਤੋ...",
+                uploadImage: "ਫਸਲ ਦੀ ਤਸਵੀਰ ਅਪਲੋਡ ਕਰੋ",
+                detectPest: "ਕੀੜੇ/ਰੋਗ ਦੀ ਪਛਾਣ ਕਰੋ",
+                todayWeather: "ਅੱਜ ਦਾ ਮੌਸਮ",
+                marketPrices: "ਮੰਡੀ ਭਾਅ",
+                recentAlerts: "ਤਾਜ਼ਾ ਚੇਤਾਵਨੀਆਂ",
+                yourCrops: "ਤੁਹਾਡੀਆਂ ਫਸਲਾਂ",
+                farmLocation: "ਖੇਤ ਦਾ ਸਥਾਨ",
+                soilType: "ਮਿੱਟੀ ਦੀ ਕਿਸਮ",
+                addCrop: "ਫਸਲ ਸ਼ਾਮਲ ਕਰੋ",
+                voiceInput: "ਆਵਾਜ਼ ਇਨਪੁੱਟ",
+                send: "ਭੇਜੋ",
+                detecting: "ਪਛਾਣ ਹੋ ਰਹੀ ਹੈ...",
+                processing: "ਪ੍ਰੋਸੈਸਿੰਗ...",
+                wheat: "ਕਣਕ",
+                rice: "ਝੋਨਾ",
+                cotton: "ਕਪਾਹ",
+                punjab: "ਪੰਜਾਬ, ਭਾਰਤ",
+                loamy: "ਦੋਮਟ ਮਿੱਟੀ",
+                temperature: "ਤਾਪਮਾਨ",
+                humidity: "ਨਮੀ",
+                rainfall: "ਮੀਂਹ",
+                windSpeed: "ਹਵਾ ਦੀ ਗਤੀ",
+                sunny: "ਧੁੱਪ",
+                cloudy: "ਬੱਦਲ",
+                rainy: "ਮੀਂਹ",
+                selectCrop: "ਫਸਲ ਚੁਣੋ",
+                getAdvice: "ਵਿਅਕਤੀਗਤ ਸਲਾਹ ਪ੍ਰਾਪਤ ਕਰੋ"
+            }
+        };
+
+        // Main App Component
+        function App() {
+            const [isAuthenticated, setIsAuthenticated] = useState(false);
+            const [currentStep, setCurrentStep] = useState('phone'); // phone, otp, language, dashboard
+            const [phoneNumber, setPhoneNumber] = useState('');
+            const [otp, setOtp] = useState('');
+            const [language, setLanguage] = useState('en');
+            const [userName, setUserName] = useState('');
+            const t = translations[language];
+
+            const handlePhoneSubmit = () => {
+                if (phoneNumber.length === 10) {
+                    // Simulate OTP send
+                    setCurrentStep('otp');
+                }
+            };
+
+            const handleOtpVerify = () => {
+                if (otp.length === 6) {
+                    // Simulate OTP verification
+                    setCurrentStep('language');
+                }
+            };
+
+            const handleLanguageSelect = (lang) => {
+                setLanguage(lang);
+                setIsAuthenticated(true);
+                setCurrentStep('dashboard');
+                setUserName('Farmer_' + phoneNumber.slice(-4));
+            };
+
+            const handleLogout = () => {
+                setIsAuthenticated(false);
+                setCurrentStep('phone');
+                setPhoneNumber('');
+                setOtp('');
+            };
+
+            if (!isAuthenticated) {
+                return (
+                    <div className="min-h-screen gradient-bg flex items-center justify-center p-4">
+                        <div className="glass-effect rounded-2xl shadow-2xl p-8 w-full max-w-md animate-float">
+                            {/* Logo and Title */}
+                            <div className="text-center mb-8">
+                                <div className="w-20 h-20 bg-green-500 rounded-full mx-auto mb-4 flex items-center justify-center">
+                                    <span className="text-3xl">🌾</span>
+                                </div>
+                                <h1 className="text-3xl font-bold text-gray-800">{t.welcome}</h1>
+                                <p className="text-gray-600 mt-2">{t.tagline}</p>
+                            </div>
+
+                            {/* Phone Input Step */}
+                            {currentStep === 'phone' && (
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                            {t.phoneNumber}
+                                        </label>
+                                        <input
+                                            type="tel"
+                                            placeholder={t.enterPhone}
+                                            value={phoneNumber}
+                                            onChange={(e) => setPhoneNumber(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                                            maxLength="10"
+                                        />
+                                    </div>
+                                    <button
+                                        onClick={handlePhoneSubmit}
+                                        disabled={phoneNumber.length !== 10}
+                                        className={`w-full py-3 rounded-lg font-semibold transition-all ${
+                                            phoneNumber.length === 10
+                                                ? 'bg-purple-600 text-white hover:bg-purple-700'
+                                                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                        }`}
+                                    >
+                                        {t.sendOTP}
+                                    </button>
+                                </div>
+                            )}
+
+                            {/* OTP Verification Step */}
+                            {currentStep === 'otp' && (
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                            {t.enterOTP}
+                                        </label>
+                                        <input
+                                            type="text"
+                                            placeholder="000000"
+                                            value={otp}
+                                            onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-center text-2xl tracking-widest"
+                                            maxLength="6"
+                                        />
+                                        <p className="text-sm text-gray-500 mt-2">
+                                            OTP sent to +91 {phoneNumber}
+                                        </p>
+                                    </div>
+                                    <button
+                                        onClick={handleOtpVerify}
+                                        disabled={otp.length !== 6}
+                                        className={`w-full py-3 rounded-lg font-semibold transition-all ${
+                                            otp.length === 6
+                                                ? 'bg-purple-600 text-white hover:bg-purple-700'
+                                                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                        }`}
+                                    >
+                                        {t.verifyOTP}
+                                    </button>
+                                    <button className="w-full text-purple-600 hover:text-purple-700 text-sm">
+                                        {t.resendOTP}
+                                    </button>
+                                </div>
+                            )}
+
+                            {/* Language Selection Step */}
+                            {currentStep === 'language' && (
+                                <div className="space-y-4">
+                                    <h2 className="text-xl font-semibold text-gray-800 text-center mb-6">
+                                        {t.selectLanguage}
+                                    </h2>
+                                    <div className="space-y-3">
+                                        <button
+                                            onClick={() => handleLanguageSelect('en')}
+                                            className="w-full py-4 px-6 bg-white border-2 border-purple-200 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition-all flex items-center justify-between group"
+                                        >
+                                            <span className="text-lg font-medium">English</span>
+                                            <span className="text-2xl group-hover:scale-110 transition-transform">🇬🇧</span>
+                                        </button>
+                                        <button
+                                            onClick={() => handleLanguageSelect('hi')}
+                                            className="w-full py-4 px-6 bg-white border-2 border-purple-200 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition-all flex items-center justify-between group"
+                                        >
+                                            <span className="text-lg font-medium">हिन्दी</span>
+                                            <span className="text-2xl group-hover:scale-110 transition-transform">🇮🇳</span>
+                                        </button>
+                                        <button
+                                            onClick={() => handleLanguageSelect('pa')}
+                                            className="w-full py-4 px-6 bg-white border-2 border-purple-200 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition-all flex items-center justify-between group"
+                                        >
+                                            <span className="text-lg font-medium">ਪੰਜਾਬੀ</span>
+                                            <span className="text-2xl group-hover:scale-110 transition-transform">🌾</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                );
+            }
+
+            return <Dashboard language={language} userName={userName} onLogout={handleLogout} />;
+        }
+
+        // Dashboard Component
+        function Dashboard({ language, userName, onLogout }) {
+            const [activeTab, setActiveTab] = useState('dashboard');
+            const [messages, setMessages] = useState([]);
+            const [inputMessage, setInputMessage] = useState('');
+            const [isRecording, setIsRecording] = useState(false);
+            const [selectedCrop, setSelectedCrop] = useState('');
+            const [uploadedImage, setUploadedImage] = useState(null);
+            const [isDetecting, setIsDetecting] = useState(false);
+            const [detectionResult, setDetectionResult] = useState(null);
+            const t = translations[language];
+            const fileInputRef = useRef(null);
+
+            // Simulated weather data
+            const weatherData = {
+                temperature: '28°C',
+                humidity: '65%',
+                rainfall: '2mm',
+                windSpeed: '12 km/h',
+                condition: t.sunny
+            };
+
+            // Simulated market prices
+            const marketPrices = [
+                { crop: t.wheat, price: '₹2,150/quintal', trend: '+2%' },
+                { crop: t.rice, price: '₹1,950/quintal', trend: '+1.5%' },
+                { crop: t.cotton, price: '₹6,200/quintal', trend: '-0.5%' }
+            ];
+
+            const handleSendMessage = () => {
+                if (inputMessage.trim()) {
+                    const newMessage = {
+                        id: Date.now(),
+                        text: inputMessage,
+                        sender: 'user',
+                        timestamp: new Date().toLocaleTimeString()
+                    };
+                    setMessages([...messages, newMessage]);
+                    setInputMessage('');
+
+                    // Simulate AI response
+                    setTimeout(() => {
+                        const aiResponse = {
+                            id: Date.now() + 1,
+                            text: getAIResponse(inputMessage, language),
+                            sender: 'ai',
+                            timestamp: new Date().toLocaleTimeString()
+                        };
+                        setMessages(prev => [...prev, aiResponse]);
+                    }, 1500);
+                }
+            };
+
+            const getAIResponse = (query, lang) => {
+                const responses = {
+                    en: [
+                        "Based on current weather conditions, it's an ideal time for wheat sowing. Ensure proper seed treatment before planting.",
+                        "The soil moisture level is optimal. Consider applying organic manure for better yield.",
+                        "Market prices for wheat are expected to rise next week. Plan your harvest accordingly.",
+                        "For pest control, use neem-based organic pesticides. Apply during early morning or evening."
+                    ],
+                    hi: [
+                        "वर्तमान मौसम की स्थिति के अनुसार, यह गेहूं की बुवाई के लिए आदर्श समय है। रोपण से पहले उचित बीज उपचार सुनिश्चित करें।",
+                        "मिट्टी की नमी का स्तर इष्टतम है। बेहतर उपज के लिए जैविक खाद डालने पर विचार करें।",
+                        "अगले सप्ताह गेहूं की कीमतों में वृद्धि की उम्मीद है। तदनुसार अपनी फसल की योजना बनाएं।",
+                        "कीट नियंत्रण के लिए नीम आधारित जैविक कीटनाशकों का प्रयोग करें। सुबह या शाम के समय लगाएं।"
+                    ],
+                    pa: [
+                        "ਮੌਜੂਦਾ ਮੌਸਮ ਦੀਆਂ ਸਥਿਤੀਆਂ ਦੇ ਅਨੁਸਾਰ, ਇਹ ਕਣਕ ਦੀ ਬਿਜਾਈ ਲਈ ਆਦਰਸ਼ ਸਮਾਂ ਹੈ। ਬੀਜਣ ਤੋਂ ਪਹਿਲਾਂ ਸਹੀ ਬੀਜ ਉਪਚਾਰ ਯਕੀਨੀ ਬਣਾਓ।",
+                        "ਮਿੱਟੀ ਦੀ ਨਮੀ ਦਾ ਪੱਧਰ ਸਹੀ ਹੈ। ਬਿਹਤਰ ਝਾੜ ਲਈ ਜੈਵਿਕ ਖਾਦ ਪਾਉਣ 'ਤੇ ਵਿਚਾਰ ਕਰੋ।",
+                        "ਅਗਲੇ ਹਫ਼ਤੇ ਕਣਕ ਦੀਆਂ ਕੀਮਤਾਂ ਵਧਣ ਦੀ ਉਮੀਦ ਹੈ। ਉਸ ਅਨੁਸਾਰ ਆਪਣੀ ਵਾਢੀ ਦੀ ਯੋਜਨਾ ਬਣਾਓ।",
+                        "ਕੀੜੇ ਨਿਯੰਤਰਣ ਲਈ ਨਿੰਮ-ਅਧਾਰਿਤ ਜੈਵਿਕ ਕੀਟਨਾਸ਼ਕਾਂ ਦੀ ਵਰਤੋਂ ਕਰੋ। ਸਵੇਰੇ ਜਾਂ ਸ਼ਾਮ ਦੇ ਸਮੇਂ ਲਾਗੂ ਕਰੋ।"
+                    ]
+                };
+                return responses[lang][Math.floor(Math.random() * responses[lang].length)];
+            };
+
+            const handleImageUpload = (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onloadend = () => {
+                        setUploadedImage(reader.result);
+                        setDetectionResult(null);
+                    };
+                    reader.readAsDataURL(file);
+                }
+            };
+
+            const handlePestDetection = () => {
+                setIsDetecting(true);
+                // Simulate pest detection
+                setTimeout(() => {
+                    setDetectionResult({
+                        pest: language === 'en' ? 'Aphids detected' : language === 'hi' ? 'एफिड्स का पता चला' : 'ਐਫਿਡਸ ਦਾ ਪਤਾ ਲੱਗਾ',
+                        confidence: '87%',
+                        treatment: language === 'en' ? 'Apply neem oil spray (5ml/L water) in evening' : 
+                                  language === 'hi' ? 'शाम को नीम तेल स्प्रे (5ml/L पानी) लगाएं' : 
+                                  'ਸ਼ਾਮ ਨੂੰ ਨਿੰਮ ਤੇਲ ਸਪਰੇਅ (5ml/L ਪਾਣੀ) ਲਗਾਓ'
+                    });
+                    setIsDetecting(false);
+                }, 2000);
+            };
+
+            const renderContent = () => {
+                switch(activeTab) {
+                    case 'dashboard':
+                        return (
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                {/* Weather Card */}
+                                <div className="bg-gradient-to-br from-blue-400 to-blue-600 text-white rounded-xl p-6 shadow-lg">
+                                    <h3 className="text-xl font-semibold mb-4">{t.todayWeather}</h3>
+                                    <div className="space-y-2">
+                                        <div className="flex justify-between">
+                                            <span>{t.temperature}:</span>
+                                            <span className="font-bold">{weatherData.temperature}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span>{t.humidity}:</span>
+                                            <span className="font-bold">{weatherData.humidity}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span>{t.rainfall}:</span>
+                                            <span className="font-bold">{weatherData.rainfall}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span>{t.windSpeed}:</span>
+                                            <span className="font-bold">{weatherData.windSpeed}</span>
+                                        </div>
+                                    </div>
+                                    <div className="mt-4 text-center">
+                                        <span className="text-3xl">☀️</span>
+                                        <p className="mt-2">{weatherData.condition}</p>
+                                    </div>
+                                </div>
+
+                                {/* Market Prices Card */}
+                                <div className="bg-gradient-to-br from-green-400 to-green-600 text-white rounded-xl p-6 shadow-lg">
+                                    <h3 className="text-xl font-semibold mb-4">{t.marketPrices}</h3>
+                                    <div className="space-y-3">
+                                        {marketPrices.map((item, index) => (
+                                            <div key={index} className="flex justify-between items-center">
+                                                <span>{item.crop}</span>
+                                                <div className="text-right">
+                                                    <p className="font-bold">{item.price}</p>
+                                                    <p className={`text-xs ${item.trend.startsWith('+') ? 'text-green-200' : 'text-red-200'}`}>
+                                                        {item.trend}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Your Crops Card */}
+                                <div className="bg-gradient-to-br from-purple-400 to-purple-600 text-white rounded-xl p-6 shadow-lg">
+                                    <h3 className="text-xl font-semibold mb-4">{t.yourCrops}</h3>
+                                    <div className="space-y-3">
+                                        <div className="bg-white/20 rounded-lg p-3">
+                                            <p className="font-medium">{t.wheat}</p>
+                                            <p className="text-sm opacity-90">2 acres - Sowing stage</p>
+                                        </div>
+                                        <div className="bg-white/20 rounded-lg p-3">
+                                            <p className="font-medium">{t.rice}</p>
+                                            <p className="text-sm opacity-90">1 acre - Harvesting ready</p>
+                                        </div>
+                                    </div>
+                                    <button className="mt-4 w-full bg-white/20 hover:bg-white/30 rounded-lg py-2 transition-all">
+                                        + {t.addCrop}
+                                    </button>
+                                </div>
+
+                                {/* Quick Actions */}
+                                <div className="bg-white rounded-xl p-6 shadow-lg col-span-full">
+                                    <h3 className="text-xl font-semibold mb-4 text-gray-800">Quick Actions</h3>
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                        <button
+                                            onClick={() => setActiveTab('advisory')}
+                                            className="p-4 bg-blue-50 hover:bg-blue-100 rounded-lg transition-all group"
+                                        >
+                                            <span className="text-3xl block mb-2 group-hover:scale-110 transition-transform">💬</span>
+                                            <p className="text-sm text-gray-700">{t.cropAdvisory}</p>
+                                        </button>
+                                        <button
+                                            onClick={() => setActiveTab('pest')}
+                                            className="p-4 bg-green-50 hover:bg-green-100 rounded-lg transition-all group"
+                                        >
+                                            <span className="text-3xl block mb-2 group-hover:scale-110 transition-transform">🐛</span>
+                                            <p className="text-sm text-gray-700">{t.pestDetection}</p>
+                                        </button>
+                                        <button
+                                            onClick={() => setActiveTab('weather')}
+                                            className="p-4 bg-yellow-50 hover:bg-yellow-100 rounded-lg transition-all group"
+                                        >
+                                            <span className="text-3xl block mb-2 group-hover:scale-110 transition-transform">🌤️</span>
+                                            <p className="text-sm text-gray-700">{t.weather}</p>
+                                        </button>
+                                        <button
+                                            onClick={() => setActiveTab('market')}
+                                            className="p-4 bg-purple-50 hover:bg-purple-100 rounded-lg transition-all group"
+                                        >
+                                            <span className="text-3xl block mb-2 group-hover:scale-110 transition-transform">💰</span>
+                                            <p className="text-sm text-gray-700">{t.market}</p>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* Recent Alerts */}
+                                <div className="bg-white rounded-xl p-6 shadow-lg col-span-full">
+                                    <h3 className="text-xl font-semibold mb-4 text-gray-800">{t.recentAlerts}</h3>
+                                    <div className="space-y-3">
+                                        <div className="flex items-start space-x-3 p-3 bg-yellow-50 rounded-lg">
+                                            <span className="text-2xl">⚠️</span>
+                                            <div>
+                                                <p className="font-medium text-gray-800">Weather Alert</p>
+                                                <p className="text-sm text-gray-600">Heavy rainfall expected in next 48 hours</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-start space-x-3 p-3 bg-green-50 rounded-lg">
+                                            <span className="text-2xl">📈</span>
+                                            <div>
+                                                <p className="font-medium text-gray-800">Market Update</p>
+                                                <p className="text-sm text-gray-600">Wheat prices increased by 5% this week</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        );
+
+                    case 'advisory':
+                        return (
+                            <div className="max-w-4xl mx-auto">
+                                <div className="bg-white rounded-xl shadow-lg h-[600px] flex flex-col">
+                                    {/* Chat Header */}
+                                    <div className="bg-gradient-to-r from-blue-500 to-blue-600 text-white p-4 rounded-t-xl">
+                                        <h3 className="text-xl font-semibold">{t.cropAdvisory}</h3>
+                                        <p className="text-sm opacity-90">{t.askQuestion}</p>
+                                    </div>
+
+                                    {/* Crop Selection */}
+                                    <div className="p-4 border-b">
+                                        <div className="flex items-center space-x-4">
+                                            <label className="text-sm font-medium text-gray-700">{t.selectCrop}:</label>
+                                            <select
+                                                value={selectedCrop}
+                                                onChange={(e) => setSelectedCrop(e.target.value)}
+                                                className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                                            >
+                                                <option value="">{t.selectCrop}</option>
+                                                <option value="wheat">{t.wheat}</option>
+                                                <option value="rice">{t.rice}</option>
+                                                <option value="cotton">{t.cotton}</option>
+                                            </select>
+                                            <button className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-all">
+                                                {t.getAdvice}
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {/* Chat Messages */}
+                                    <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                                        {messages.length === 0 && (
+                                            <div className="text-center text-gray-500 mt-20">
+                                                <span className="text-6xl block mb-4">🌱</span>
+                                                <p>{t.askQuestion}</p>
+                                            </div>
+                                        )}
+                                        {messages.map((message) => (
+                                            <div
+                                                key={message.id}
+                                                className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'} chat-message`}
+                                            >
+                                                <div
+                                                    className={`max-w-xs lg:max-w-md px-4 py-3 rounded-lg ${
+                                                        message.sender === 'user'
+                                                            ? 'bg-blue-500 text-white'
+                                                            : 'bg-gray-100 text-gray-800'
+                                                    }`}
+                                                >
+                                                    <p>{message.text}</p>
+                                                    <p className={`text-xs mt-1 ${message.sender === 'user' ? 'text-blue-100' : 'text-gray-500'}`}>
+                                                        {message.timestamp}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    {/* Chat Input */}
+                                    <div className="p-4 border-t">
+                                        <div className="flex space-x-2">
+                                            <button
+                                                onClick={() => setIsRecording(!isRecording)}
+                                                className={`p-3 rounded-lg transition-all ${
+                                                    isRecording
+                                                        ? 'bg-red-500 text-white animate-pulse'
+                                                        : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                                                }`}
+                                            >
+                                                <span>🎤</span>
+                                            </button>
+                                            <input
+                                                type="text"
+                                                value={inputMessage}
+                                                onChange={(e) => setInputMessage(e.target.value)}
+                                                onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                                                placeholder={t.typeMessage}
+                                                className="flex-1 px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                                            />
+                                            <button
+                                                onClick={handleSendMessage}
+                                                className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-all"
+                                            >
+                                                {t.send}
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        );
+
+                    case 'pest':
+                        return (
+                            <div className="max-w-4xl mx-auto">
+                                <div className="bg-white rounded-xl shadow-lg p-6">
+                                    <h3 className="text-2xl font-semibold mb-6 text-gray-800">{t.pestDetection}</h3>
+                                    
+                                    <div className="grid md:grid-cols-2 gap-6">
+                                        {/* Upload Section */}
+                                        <div>
+                                            <div
+                                                onClick={() => fileInputRef.current?.click()}
+                                                className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:border-blue-500 transition-all"
+                                            >
+                                                {uploadedImage ? (
+                                                    <img src={uploadedImage} alt="Uploaded" className="max-w-full h-64 mx-auto object-cover rounded" />
+                                                ) : (
+                                                    <>
+                                                        <span className="text-6xl block mb-4">📷</span>
+                                                        <p className="text-gray-600">{t.uploadImage}</p>
+                                                        <p className="text-sm text-gray-400 mt-2">Click to browse or drag and drop</p>
+                                                    </>
+                                                )}
+                                            </div>
+                                            <input
+                                                ref={fileInputRef}
+                                                type="file"
+                                                accept="image/*"
+                                                onChange={handleImageUpload}
+                                                className="hidden"
+                                            />
+                                            {uploadedImage && (
+                                                <button
+                                                    onClick={handlePestDetection}
+                                                    disabled={isDetecting}
+                                                    className="w-full mt-4 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-all disabled:bg-gray-400"
+                                                >
+                                                    {isDetecting ? t.detecting : t.detectPest}
+                                                </button>
+                                            )}
+                                        </div>
+
+                                        {/* Results Section */}
+                                        <div>
+                                            {isDetecting && (
+                                                <div className="flex items-center justify-center h-full">
+                                                    <div className="text-center">
+                                                        <div className="typing-indicator">
+                                                            <span></span>
+                                                            <span></span>
+                                                            <span></span>
+                                                        </div>
+                                                        <p className="mt-4 text-gray-600">{t.processing}</p>
+                                                    </div>
+                                                </div>
+                                            )}
+                                            
+                                            {detectionResult && !isDetecting && (
+                                                <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-6">
+                                                    <h4 className="text-lg font-semibold text-gray-800 mb-4">Detection Results</h4>
+                                                    <div className="space-y-3">
+                                                        <div className="bg-white rounded-lg p-3">
+                                                            <p className="text-sm text-gray-600">Identified Issue:</p>
+                                                            <p className="font-semibold text-red-600">{detectionResult.pest}</p>
+                                                        </div>
+                                                        <div className="bg-white rounded-lg p-3">
+                                                            <p className="text-sm text-gray-600">Confidence:</p>
+                                                            <p className="font-semibold text-green-600">{detectionResult.confidence}</p>
+                                                        </div>
+                                                        <div className="bg-white rounded-lg p-3">
+                                                            <p className="text-sm text-gray-600">Recommended Treatment:</p>
+                                                            <p className="font-medium text-gray-800">{detectionResult.treatment}</p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {!detectionResult && !isDetecting && (
+                                                <div className="bg-blue-50 rounded-lg p-6">
+                                                    <h4 className="text-lg font-semibold text-gray-800 mb-4">How it works</h4>
+                                                    <ol className="space-y-2 text-sm text-gray-600">
+                                                        <li>1. Take a clear photo of the affected plant part</li>
+                                                        <li>2. Upload the image using the upload area</li>
+                                                        <li>3. Click "Detect Pest/Disease" button</li>
+                                                        <li>4. Get instant AI-powered diagnosis</li>
+                                                        <li>5. Follow recommended treatment</li>
+                                                    </ol>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        );
+
+                    case 'weather':
+                        return (
+                            <div className="max-w-6xl mx-auto">
+                                <div className="bg-white rounded-xl shadow-lg p-6">
+                                    <h3 className="text-2xl font-semibold mb-6 text-gray-800">{t.weather} Forecast</h3>
+                                    
+                                    {/* Current Weather */}
+                                    <div className="bg-gradient-to-r from-blue-400 to-blue-600 text-white rounded-xl p-8 mb-6">
+                                        <div className="grid md:grid-cols-2 gap-6">
+                                            <div>
+                                                <p className="text-xl opacity-90">Current Conditions</p>
+                                                <p className="text-5xl font-bold mt-2">{weatherData.temperature}</p>
+                                                <p className="text-xl mt-2">{weatherData.condition}</p>
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div>
+                                                    <p className="opacity-90">{t.humidity}</p>
+                                                    <p className="text-2xl font-semibold">{weatherData.humidity}</p>
+                                                </div>
+                                                <div>
+                                                    <p className="opacity-90">{t.windSpeed}</p>
+                                                    <p className="text-2xl font-semibold">{weatherData.windSpeed}</p>
+                                                </div>
+                                                <div>
+                                                    <p className="opacity-90">{t.rainfall}</p>
+                                                    <p className="text-2xl font-semibold">{weatherData.rainfall}</p>
+                                                </div>
+                                                <div>
+                                                    <p className="opacity-90">UV Index</p>
+                                                    <p className="text-2xl font-semibold">6 (High)</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* 7-Day Forecast */}
+                                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
+                                        {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day, index) => (
+                                            <div key={day} className="bg-gray-50 rounded-lg p-4 text-center hover:bg-gray-100 transition-all">
+                                                <p className="font-medium text-gray-700">{day}</p>
+                                                <span className="text-3xl block my-3">
+                                                    {index < 2 ? '☀️' : index < 4 ? '⛅' : '🌧️'}
+                                                </span>
+                                                <p className="font-semibold">{28 - index}°C</p>
+                                                <p className="text-sm text-gray-500">{20 + index}°C</p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        );
+
+                    case 'market':
+                        return (
+                            <div className="max-w-6xl mx-auto">
+                                <div className="bg-white rounded-xl shadow-lg p-6">
+                                    <h3 className="text-2xl font-semibold mb-6 text-gray-800">{t.marketPrices}</h3>
+                                    
+                                    {/* Market Table */}
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full">
+                                            <thead>
+                                                <tr className="bg-gray-50">
+                                                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Crop</th>
+                                                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Current Price</th>
+                                                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Yesterday</th>
+                                                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Change</th>
+                                                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Market</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-gray-200">
+                                                {marketPrices.map((item, index) => (
+                                                    <tr key={index} className="hover:bg-gray-50">
+                                                        <td className="px-4 py-4 font-medium">{item.crop}</td>
+                                                        <td className="px-4 py-4 font-semibold">{item.price}</td>
+                                                        <td className="px-4 py-4">₹2,100/quintal</td>
+                                                        <td className="px-4 py-4">
+                                                            <span className={`px-2 py-1 rounded text-sm font-medium ${
+                                                                item.trend.startsWith('+') 
+                                                                    ? 'bg-green-100 text-green-800' 
+                                                                    : 'bg-red-100 text-red-800'
+                                                            }`}>
+                                                                {item.trend}
+                                                            </span>
+                                                        </td>
+                                                        <td className="px-4 py-4">Amritsar Mandi</td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+
+                                    {/* Price Chart Placeholder */}
+                                    <div className="mt-6 bg-gray-50 rounded-lg p-6">
+                                        <h4 className="text-lg font-semibold mb-4">Price Trends (Last 30 Days)</h4>
+                                        <div className="h-64 flex items-center justify-center bg-white rounded">
+                                            <p className="text-gray-500">📊 Price chart visualization</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        );
+
+                    default:
+                        return null;
+                }
+            };
+
+            return (
+                <div className="min-h-screen bg-gray-50">
+                    {/* Header */}
+                    <header className="bg-white shadow-sm border-b">
+                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                            <div className="flex justify-between items-center h-16">
+                                <div className="flex items-center">
+                                    <span className="text-2xl mr-3">🌾</span>
+                                    <h1 className="text-xl font-bold text-gray-800">AgroAI</h1>
+                                </div>
+                                <div className="flex items-center space-x-4">
+                                    <span className="text-sm text-gray-600">👤 {userName}</span>
+                                    <button
+                                        onClick={onLogout}
+                                        className="text-sm text-red-600 hover:text-red-700"
+                                    >
+                                        {t.logout}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </header>
+
+                    {/* Navigation */}
+                    <nav className="bg-white border-b">
+                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                            <div className="flex space-x-8 overflow-x-auto">
+                                {[
+                                    { id: 'dashboard', icon: '📊', label: t.dashboard },
+                                    { id: 'advisory', icon: '💬', label: t.cropAdvisory },
+                                    { id: 'pest', icon: '🐛', label: t.pestDetection },
+                                    { id: 'weather', icon: '🌤️', label: t.weather },
+                                    { id: 'market', icon: '💰', label: t.market },
+                                    { id: 'community', icon: '👥', label: t.community }
+                                ].map((tab) => (
+                                    <button
+                                        key={tab.id}
+                                        onClick={() => setActiveTab(tab.id)}
+                                        className={`flex items-center space-x-2 py-4 px-1 border-b-2 transition-all ${
+                                            activeTab === tab.id
+                                                ? 'border-purple-500 text-purple-600'
+                                                : 'border-transparent text-gray-500 hover:text-gray-700'
+                                        }`}
+                                    >
+                                        <span>{tab.icon}</span>
+                                        <span className="font-medium">{tab.label}</span>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    </nav>
+
+                    {/* Main Content */}
+                    <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                        {renderContent()}
+                    </main>
+                </div>
+            );
+        }
+
+        // Render the app
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</body>
+</html>
